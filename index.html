@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Istanbul route</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--red:#c8102e;--ink:#1b1d21;--soft:#5d6470;--bg:#fff;--line:#e4e6ea;--chip:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+body{display:flex;flex-direction:column}
+header{padding:10px 12px 0;background:var(--red);color:#fff}
+header h1{margin:0 0 8px;font-size:18px;font-weight:700}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px}
+.tabs button{flex:none;border:0;border-radius:20px;padding:9px 14px;font:600 14px system-ui,sans-serif;background:rgba(255,255,255,.18);color:#fff;min-height:40px}
+.tabs button.on{background:#fff;color:var(--red)}
+#map{height:48vh;min-height:260px;flex:none}
+#list{flex:1;overflow-y:auto;padding:8px 12px 24px}
+.dayhead{margin:6px 0 10px;color:var(--soft);font-size:14px}
+.stop{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.num{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.num.h{background:#333}
+.top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.name{font-weight:700;cursor:pointer}
+.time{flex:none;color:var(--soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;margin:4px 6px 0 0;background:var(--chip);color:var(--soft)}
+.tag.b{background:#fde8eb;color:var(--red);font-weight:600}
+.tag.k{background:#fff3d6;color:#8a5a00;font-weight:600}
+.note{margin:4px 0 0;font-size:14px}
+.quote{font-style:italic}
+.btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.btns a{text-decoration:none;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;border:1px solid var(--line);color:var(--ink);min-height:36px}
+.btns a.p{background:var(--red);border-color:var(--red);color:#fff}
+.pin{width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:grid;place-items:center;font:700 13px system-ui,sans-serif}
+.pin.h{background:#333}
+@media(min-width:900px){body{display:grid;grid-template-columns:1fr 420px;grid-template-rows:auto 1fr}header{grid-column:1/3}#map{height:auto}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Istanbul · 25–28 Nov</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+<div id="map"></div>
+<div id="list"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+{
+const H={n:"Khai Karaköy (hotel)",lat:41.023805,lng:28.974937,id:"ChIJM34buB65yhQRhQ4IOfD2Uzk",hotel:1};
+const D=[
+ {t:"Wed 25",title:"Late evening walk and a kebab",sub:"You land at 18:05, so this starts around 22:00.",s:[
+  {...H,time:"22:00",note:"Start"},
+  {n:"Galata Tower",lat:41.025569,lng:28.9741286,id:"ChIJQ3x3p-e5yhQRCzOLzD3Pdkw",time:"22:05",b:1,note:"Lit up at night. Outside only."},
+  {n:"Baran Lahmacun",lat:41.033311,lng:28.9807509,id:"ChIJlestjWa3yhQRtWqvwVNRegw",time:"22:30",b:"great lahmacun/kebab place",k:"Kebab #1",note:"Open till midnight. About 15 min uphill from the tower."},
+  {n:"Karaköy Güllüoğlu",lat:41.024886,lng:28.9809764,id:"ChIJ9XlKFOi5yhQR2Bo2XTkPPvA",time:"23:30",b:"MUST-GO baklava place! eat the havuç w ice cream. best baklava in istanbul",note:"Optional dessert on the way back. Open till 01:00."}
+ ]},
+ {t:"Thu 26",title:"Sultanahmet, kebab dinner",s:[
+  {...H,time:"08:15",note:"Walk across the Galata Bridge, about 35 min."},
+  {n:"Hagia Sophia",lat:41.008583,lng:28.980175,id:"ChIJJxwBkr65yhQRrk9EN29vbiM",time:"09:00",b:1,note:"€25. Tourist entrance on the side facing Topkapı."},
+  {n:"Blue Mosque",lat:41.0054096,lng:28.9768138,id:"ChIJ4fRwZb25yhQRpHwVijb3LeU",time:"10:30",b:1,note:"Free; closes briefly at prayer times."},
+  {n:"Sultanahmet Square & Örme Dikilitaş",lat:41.0054067,lng:28.9748244,id:"ChIJ84H26Ze5yhQRWMlKCOO1Suw",time:"11:15",b:1},
+  {n:"Selim Usta Köftecisi",lat:41.0080082,lng:28.9769068,id:"ChIJQVRlxSV2iEARShvK2m23kQ0",time:"12:00",b:1,note:"Lunch, köfte."},
+  {n:"Topkapı Palace",lat:41.0115195,lng:28.9833789,id:"ChIJM_ilr7i5yhQRAFMBw0MZqhU",time:"13:00",b:1,note:"Include the Harem. Closes 17:00."},
+  {n:"Tomtom Kebap",lat:41.0309121,lng:28.9788801,id:"ChIJ-UX95eq5yhQRx5kA6OlBCEA",time:"19:00",b:1,k:"Kebab #2",note:"Tram back to Karaköy and rest first. Queue across the street."},
+  {n:"NOH Radio Bar",lat:41.0318898,lng:28.9796721,id:"ChIJl5AdJZu3yhQRxdkf7c1iYxM",time:"21:00",b:"really popular among locals",note:"3 min from Tomtom."}
+ ]},
+ {t:"Fri 27",title:"Bazaars, döner, Kadıköy evening",s:[
+  {...H,time:"09:00",note:"Walk over the Galata Bridge, about 30 min."},
+  {n:"Day Day Patisserie",lat:41.0095755,lng:28.9680538,id:"ChIJNWxbDpG5yhQRxdf1AXL1gfQ",time:"09:30",b:"insanely popular with locals, amazing apple cookies, basically everything they make is amazing",note:"Light breakfast. Closes 16:00."},
+  {n:"Grand Bazaar",lat:41.0106848,lng:28.9680681,id:"ChIJJwXXYpG5yhQRq5jBWgtoyGQ",time:"10:00",b:1},
+  {n:"Meşhur Dönerci Hacı Osman",lat:41.0126825,lng:28.9661093,id:"ChIJhWzKP5K5yhQRrj6nW-KpOW4",time:"12:15",b:"!!!",k:"Kebab #3",note:"Walk-up window, closes 16:30."},
+  {n:"Spice Bazaar",lat:41.0165001,lng:28.9705194,id:"ChIJn9t8b-u5yhQRXVCwl43vu0Q",time:"13:15",b:"spice bazaar!!"},
+  {n:"Eminönü ferry to Kadıköy",lat:41.0181646,lng:28.9728493,id:"ChIJrQitzuu5yhQRtoKkPnbgrCg",time:"15:00",note:"About 20 min crossing."},
+  {n:"Moda coastal park",lat:40.980058,lng:29.0269558,id:"ChIJxX8aa4q4yhQRKiIKntQmhCo",time:"16:00",b:1,note:"Sunset around 16:35."},
+  {n:"Çiya Sofrası",lat:40.989254,lng:29.0241904,id:"ChIJhToLome4yhQRE1EMuLSuqlg",time:"18:30",b:"traditional turkish dishes",note:"Dinner."},
+  {n:"Rock'n Rolla",lat:40.9889112,lng:29.0247242,id:"ChIJH_XnL2G4yhQRG7z_OR8oj2Q",time:"20:30",b:"cheap beer",note:"Afterwards: ferry Kadıköy → Karaköy, 5 min from the hotel."}
+ ]},
+ {t:"Sat 28",title:"Big breakfast, Bosphorus, İstiklal, meyhane dinner",s:[
+  {...H,time:"08:45",note:"Start"},
+  {n:"Van Kahvaltı Evi",lat:41.0305102,lng:28.9824282,id:"ChIJLbyNBGK3yhQRVoRMamyQtCs",time:"09:00",b:"trad turkish breakfast",k:"Big breakfast",note:"Order the set breakfast. Busy on Saturdays, go early."},
+  {n:"Dolmabahçe Palace",lat:41.0391643,lng:29.0004594,id:"ChIJ4307Gna3yhQRC4M7zzg-09w",time:"11:00",note:"Outside only, on the shore walk."},
+  {n:"Büyük Mecidiye Mosque (Ortaköy)",lat:41.0472151,lng:29.0269478,id:"ChIJrYco5Mi3yhQRvMivnqLyc_0",time:"12:15",b:1,note:"Free."},
+  {n:"Coq Rôti",lat:41.0430154,lng:29.0046126,id:"ChIJnXYrOQy3yhQR4GP9r85rYfs",time:"13:45",b:1,note:"Late lunch. Share a half chicken, portions are huge."},
+  {n:"Gezi Park",lat:41.038927,lng:28.9870004,id:"ChIJacqX92-3yhQRh2RNR43QlR0",time:"15:15",b:1,note:"Uphill walk from Beşiktaş, about 2 km."},
+  {n:"Hagia Triada Church",lat:41.0355333,lng:28.9841191,id:"ChIJn3beamS3yhQR8Kzyxem7eOY",time:"15:40",b:"the prettiest orthodox church in istanbul imo, THE place to go",note:"Closes 18:00."},
+  {n:"Ali Muhiddin Hacı Bekir",lat:41.0349828,lng:28.9814202,id:"ChIJ1S3LWmS3yhQRY3ecaDdaldI",time:"16:15",b:"TURKISH DELIGHT!!!",note:"Good moment to buy some to take home."},
+  {n:"Church of St Anthony of Padua",lat:41.0323076,lng:28.9771334,id:"ChIJH3ZHBmC3yhQROZ6IT0bNfAg",time:"16:45",b:"decent franciscan church"},
+  {n:"Viyana Kahvesi Galata",lat:41.0261563,lng:28.97342,id:"ChIJEUy3A-e5yhQRW8fUnAs9Xdc",time:"17:15",b:"san sebastian cheesecake",note:"Then rest at the hotel (3 min) before dinner."},
+  {n:"Sofyalı Meyhane",lat:41.0296112,lng:28.974584,id:"ChIJP9w1ZI65yhQRGYsazeLXpWE",time:"20:00",b:"nice place for a turkish meyhane experience",k:"Nice dinner",note:"Saturday night: book ahead."},
+  {n:"Sponeck Beerhouse",lat:41.029268,lng:28.974225,id:"ChIJX_YEZWC3yhQRt2DBt-3Xpc0",time:"22:30",b:"good place to wind down",note:"Same street as Sofyalı. Early night for the flight."}
+ ]}
+];
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const q=encodeURIComponent;
+const openUrl=p=>`https://www.google.com/maps/search/?api=1&query=${q(p.n)}&query_place_id=${p.id}`;
+const walkUrl=p=>`https://www.google.com/maps/dir/?api=1&destination=${q(p.n)}&destination_place_id=${p.id}&travelmode=walking`;
+
+const map=L.map('map',{zoomControl:false,tap:true}).setView([41.02,28.98],13);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+const layer=L.layerGroup().addTo(map);
+let markers=[];
+
+const tabs=document.getElementById('tabs'),list=document.getElementById('list');
+tabs.innerHTML=D.map((d,i)=>`<button data-i="${i}">${esc(d.t)}</button>`).join('');
+
+function show(i){
+  const d=D[i];
+  [...tabs.children].forEach((b,j)=>b.classList.toggle('on',j===i));
+  try{localStorage.setItem('ist-day',i)}catch(e){}
+  layer.clearLayers();markers=[];
+  let k=0;
+  const nums=d.s.map(p=>p.hotel?'H':String(++k));
+  const pts=d.s.map(p=>[p.lat,p.lng]);
+  L.polyline(pts.concat(d.s[0].hotel?[pts[0]]:[]),{color:'#c8102e',weight:3,opacity:.6,dashArray:'6 6'}).addTo(layer);
+  d.s.forEach((p,j)=>{
+    if(p.hotel&&j>0)return;
+    const icon=L.divIcon({className:'',html:`<div class="pin${p.hotel?' h':''}">${nums[j]}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+    const m=L.marker([p.lat,p.lng],{icon}).addTo(layer)
+      .bindPopup(`<b>${esc(p.n)}</b><br>${esc(p.time)}<br><a href="${openUrl(p)}" target="_blank" rel="noopener">Open in Google Maps</a>`);
+    m.on('click',()=>document.getElementById('s'+j)?.scrollIntoView({behavior:'smooth',block:'center'}));
+    markers[j]=m;
+  });
+  map.fitBounds(L.latLngBounds(pts),{padding:[30,30]});
+  list.innerHTML=`<p class="dayhead"><b>${esc(d.title)}</b>${d.sub?'<br>'+esc(d.sub):''}</p>`+
+    d.s.map((p,j)=>`<div class="stop" id="s${j}">
+      <div class="num${p.hotel?' h':''}">${nums[j]}</div>
+      <div>
+        <div class="top"><span class="name" data-j="${j}">${esc(p.n)}</span><span class="time">${esc(p.time)}</span></div>
+        ${p.k?`<span class="tag k">${esc(p.k)}</span>`:''}
+        ${p.hotel?'':p.b?`<span class="tag b">Bahar's pick</span>`:`<span class="tag">Not on Bahar's list</span>`}
+        ${typeof p.b==='string'?`<p class="note">Bahar: <span class="quote">"${esc(p.b)}"</span></p>`:''}
+        ${p.note?`<p class="note">${esc(p.note)}</p>`:''}
+        <div class="btns">
+          <a class="p" href="${openUrl(p)}" target="_blank" rel="noopener">Open in Google Maps</a>
+          <a href="${walkUrl(p)}" target="_blank" rel="noopener">Walk here</a>
+        </div>
+      </div></div>`).join('');
+  list.scrollTop=0;
+}
+tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(b)show(+b.dataset.i)});
+list.addEventListener('click',e=>{
+  const n=e.target.closest('.name');if(!n)return;
+  const j=+n.dataset.j,m=markers[j]||markers[0];
+  map.setView(m.getLatLng(),16);m.openPopup();
+  document.getElementById('map').scrollIntoView({behavior:'smooth'});
+});
+let start=0;try{start=+localStorage.getItem('ist-day')||0}catch(e){}
+show(start>=0&&start<D.length?start:0);
+}
+</script>
+</body>
+</html>
